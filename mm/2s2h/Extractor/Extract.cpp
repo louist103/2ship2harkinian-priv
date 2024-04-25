@@ -594,7 +594,7 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Extracting", "Extraction will now begin in the background.\n\nPlease be patient for the process to finish. Do not close the main program.", nullptr);
 #endif
 
-    zapd_main(argc, (char**)argv.data());
+    //zapd_main(argc, (char**)argv.data());
 
 #ifdef _WIN32
     // Hide the command window again.

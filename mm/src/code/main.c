@@ -7,7 +7,7 @@
 #include "CIC6105.h"
 #include "stack.h"
 #include "stackcheck.h"
-
+#include <SDL_main.h>
 // Variables are put before most headers as a hacky way to bypass bss reordering
 OSMesgQueue sSerialEventQueue;
 OSMesg sSerialMsgBuf[1];
@@ -41,11 +41,8 @@ size_t gSystemHeapSize = 0;
 
 void InitOTR();
 
-#ifdef __GNUC__
-#define SDL_main main
-#endif
 
-void SDL_main(int argc, char** argv /* void* arg*/) {
+int main(int argc, char** argv /* void* arg*/) {
     intptr_t fb;
     intptr_t sysHeap;
     s32 exit;
@@ -73,7 +70,7 @@ void SDL_main(int argc, char** argv /* void* arg*/) {
     osSetEventMesg(OS_EVENT_SI, &sSerialEventQueue, OS_MESG_PTR(NULL));
 
     osCreateMesgQueue(&sIrqMgrMsgQueue, sIrqMgrMsgBuf, ARRAY_COUNT(sIrqMgrMsgBuf));
-    PadMgr_Init(&sSerialEventQueue, &gIrqMgr, Z_THREAD_ID_PADMGR, Z_PRIORITY_PADMGR, STACK_TOP(sPadMgrStack));
+    //PadMgr_Init(&sSerialEventQueue, &gIrqMgr, Z_THREAD_ID_PADMGR, Z_PRIORITY_PADMGR, STACK_TOP(sPadMgrStack));
 
     AudioMgr_Init(&sAudioMgr, STACK_TOP(sAudioStack), Z_PRIORITY_AUDIOMGR, Z_THREAD_ID_AUDIOMGR, &gSchedContext,
                   &gIrqMgr);

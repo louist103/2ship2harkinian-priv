@@ -51,6 +51,13 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "")
 endif()
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+     set(PLATFORM "OS64")
+     include(CMake/ios.toolchain.cmake)
+     set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "764QV7MF9F")
+     set(PROJECT_ID "dev.hm64.soh")
+ endif()
+
 ################################################################################
 # Global linker options
 ################################################################################
@@ -97,7 +104,7 @@ if (NOT TARGET ZAPDUtils)
 endif()
 
 if (NOT TARGET ZAPDLib)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
+#    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
 endif()
 
 set(PROJECT_NAME mm)
@@ -288,7 +295,27 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+     set(IOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../libultraship/ios)
+
+     set(STORYBOARD_FILE ${IOS_DIR}/Launch.storyboard)
+     set(IMAGE_FILES ${IOS_DIR}/PoweredBy.png)
+     set(ICON_FILES ${IOS_DIR}/Icon.png)
+
+     list(APPEND ALL_FILES ${STORYBOARD_FILE} ${IMAGE_FILES} ${ICON_FILES})
+
+     add_executable(${PROJECT_NAME} ${ALL_FILES})
+     set_xcode_property(${PROJECT_NAME} PRODUCT_BUNDLE_IDENTIFIER ${PROJECT_ID} All)
+     set_target_properties(
+         ${PROJECT_NAME}
+         PROPERTIES
+         MACOSX_BUNDLE TRUE
+         MACOSX_BUNDLE_INFO_PLIST ${IOS_DIR}/plist.in
+         RESOURCE "${IMAGE_FILES};${STORYBOARD_FILE};${ICON_FILES}"
+     )
+ else()
+     add_executable(${PROJECT_NAME} ${ALL_FILES})
+ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
@@ -376,8 +403,10 @@ endif()
 ################################################################################
 # Compile definitions
 ################################################################################
-find_package(SDL2)
-set(SDL2-INCLUDE ${SDL2_INCLUDE_DIRS})
+if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+     find_package(SDL2)
+     set(SDL2-INCLUDE ${SDL2_INCLUDE_DIRS})
+ endif()
 
 if (BUILD_CROWD_CONTROL)
     find_package(SDL2_net)
@@ -425,8 +454,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE assets
 	.
 )
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+	if(${CMAKE_VS_PLATFORM_NAME} STREQUAL "x64")
 		target_compile_definitions(${PROJECT_NAME} PRIVATE
 			"$<$<CONFIG:Debug>:"
 				"_DEBUG;"
@@ -444,7 +473,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			STORMLIB_NO_AUTO_LINK
 			"_CRT_SECURE_NO_WARNINGS;"
 		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+	elseif(${CMAKE_VS_PLATFORM_NAME} STREQUAL "Win32")
 		target_compile_definitions(${PROJECT_NAME} PRIVATE
 			"$<$<CONFIG:Debug>:"
 				"NOINCLUDE_GAME_PRINTF;"
@@ -464,7 +493,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			STORMLIB_NO_AUTO_LINK
 		)
 	endif()
-elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "CafeOS")
 	target_compile_definitions(${PROJECT_NAME} PRIVATE
 		"$<$<CONFIG:Debug>:"
 			"_DEBUG"
@@ -477,8 +506,23 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
         "SPDLOG_NO_TLS;"
 		"STBI_NO_THREAD_LOCALS;"
 	)
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|AppleClang")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "$<$<CONFIG:Debug>:"
+            "_DEBUG"
+        ">"
+        "$<$<CONFIG:Release>:"
+            "NDEBUG"
+        ">"
+        "SPDLOG_ACTIVE_LEVEL=0;"
+        "_CONSOLE;"
+        "_CRT_SECURE_NO_WARNINGS;"
+        "__IOS__;"
+        "UNICODE;"
+        "_UNICODE"
+    )
+elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU|Clang|AppleClang")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
 		"$<$<CONFIG:Debug>:"
 			"_DEBUG"
 		">"
@@ -572,7 +616,7 @@ if(MSVC)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
         target_compile_options(${PROJECT_NAME} PRIVATE
             -Wall -Wextra -Wno-error
             -Wno-return-type
@@ -677,7 +721,7 @@ endif()
 ################################################################################
 # Pre build events
 ################################################################################
-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
     add_custom_command(
 		TARGET ${PROJECT_NAME}
 		POST_BUILD
@@ -698,7 +742,7 @@ add_dependencies(${PROJECT_NAME}
     ZAPDUtils
     libultraship
 )
-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
 add_dependencies(${PROJECT_NAME}
     ZAPDLib
 )
@@ -757,6 +801,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
     )
     target_include_directories(${PROJECT_NAME} PRIVATE
         ${DEVKITPRO}/portlibs/wiiu/include/
+    )
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "libultraship;"
+        Threads::Threads
     )
 else()
     find_package(SDL2)
